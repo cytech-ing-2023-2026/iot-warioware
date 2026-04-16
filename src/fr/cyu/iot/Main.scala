@@ -129,8 +129,6 @@ object Main extends TyrianZIOApp[Msg, Model]:
       ++ sensors.tmg.fold(Nil)(viewTMG)
     )
 
-  val dateFormat: DateFormat = SimpleDateFormat("hh:mm:ss")
-
   def status(message: String): Html[Msg] =
     div(cls := "flex flex-col")(
       label(cls := "font-bold")("Status:"),
