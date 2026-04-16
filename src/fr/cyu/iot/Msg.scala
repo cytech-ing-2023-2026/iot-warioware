@@ -1,25 +1,31 @@
 package fr.cyu.iot
 
-import tyrian.http.Decoder
-import tyrian.http.HttpError
+import tyrian.websocket.WebSocket
+import tyrian.websocket.WebSocketConnect
+import tyrian.websocket.WebSocketEvent
+import zio.Task
 import zio.json.*
 
 enum Msg:
-  case SetPollingAddress(value: String)
-  case SetPolling(value: Boolean)
-  case Poll
+  case SetAddress(value: String)
+  case Connected(socket: WebSocket[Task])
+  case Connect
   case NetworkError(reason: String)
   case Receive(data: Sensors)
+  case Disconnected(code: Int, reason: String)
   case NoOp
 
 object Msg:
   def decodingFailed(reason: String): Msg =
     Msg.NetworkError(s"Decoding failure: $reason")
 
-  val decoder: Decoder[Msg] = Decoder(
-    onResponse = _.body.fromJson[Sensors].fold(Msg.decodingFailed, Msg.Receive.apply),
-    onError =
-      case HttpError.BadRequest(msg) => Msg.NetworkError(s"Bad request: $msg")
-      case HttpError.NetworkError    => Msg.NetworkError("Network issue")
-      case HttpError.Timeout         => Msg.NetworkError("Timeout")
-  )
+  def decodeConnect(connect: WebSocketConnect[Task]): Msg = connect match
+    case WebSocketConnect.Error(msg)        => Msg.NetworkError(msg)
+    case WebSocketConnect.Socket(webSocket) => Msg.Connected(webSocket)
+
+  def decodeEvent(event: WebSocketEvent): Msg = event match
+    case WebSocketEvent.Close(code, reason) => Msg.Disconnected(code, reason)
+    case WebSocketEvent.Error(reason)       => Msg.NetworkError(reason)
+    case WebSocketEvent.Heartbeat           => Msg.NoOp
+    case WebSocketEvent.Open                => Msg.NoOp
+    case WebSocketEvent.Receive(message)    => message.fromJson[Sensors].fold(decodingFailed, Msg.Receive.apply)

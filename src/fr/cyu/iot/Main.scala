@@ -7,9 +7,10 @@ import tyrian.Html.*
 import tyrian.SVG.{pattern as svgPattern, *}
 import tyrian.http.Http
 import tyrian.http.Request
+import tyrian.websocket.WebSocket
 import zio.*
-import zio.json.*
 import zio.interop.catz.*
+import zio.json.*
 
 @JSExportTopLevel("TyrianApp")
 object Main extends TyrianZIOApp[Msg, Model]:
@@ -20,23 +21,17 @@ object Main extends TyrianZIOApp[Msg, Model]:
     (Model.default, Cmd.None)
 
   def update(model: Model): Msg => (Model, Cmd[Task, Msg]) =
-    case Msg.SetPollingAddress(value) => (model.copy(pollAddress = value), Cmd.None)
-    case Msg.SetPolling(value)        =>
-      val status =
-        if value then Status.Neutral(s"Polling from ${model.pollAddress}...")
-        else Status.Neutral("Idle")
-      (model.copy(polling = value, status = status), Cmd.None)
-    case Msg.Poll                     => (model, Http.send(Request.get(model.pollEndpoint), Msg.decoder))
-    case Msg.NetworkError(reason)     => (model.copy(polling = false, status = Status.Error(reason)), Cmd.None)
-    case Msg.Receive(data)            => (model.copy(sensors = Some(data), status = Status.Success(s"Polling from ${model.pollAddress}...")), Cmd.None)
-    case Msg.NoOp                     => (model, Cmd.None)
+    case Msg.SetAddress(value)          => (model.copy(address = value), Cmd.None)
+    case Msg.Connected(socket)          => (model.copy(socket = Some(socket), status = Status.Success(s"Connected to ${model.address}")), Cmd.None)
+    case Msg.Connect                    => (model, WebSocket.connect(model.socketEndpoint)(Msg.decodeConnect))
+    case Msg.NetworkError(reason)       => (model.copy(status = Status.Error(reason)), Cmd.None)
+    case Msg.Receive(data)              => (model.copy(sensors = Some(data)), Cmd.None)
+    case Msg.Disconnected(1000, _)      => (model.copy(socket = None, status = Status.Neutral("Disconnected")), Cmd.None)
+    case Msg.Disconnected(code, reason) => (model.copy(socket = None, status = Status.Error(s"Disconnected: $reason")), Cmd.None)
+    case Msg.NoOp                       => (model, Cmd.None)
 
   def subscriptions(model: Model): Sub[Task, Msg] =
-    if model.polling then
-      Sub
-        .every(1.seconds, "polling")
-        .map(_ => Msg.Poll)
-    else Sub.None
+    model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent))
 
   def formatTime(uptime: Long): String =
     val hours = uptime / 3_600_000
@@ -115,8 +110,7 @@ object Main extends TyrianZIOApp[Msg, Model]:
         section("General"),
         tr(
           td("Uptime"),
-          td(formatTime
-      (sensors.uptime))
+          td(formatTime(sensors.uptime))
         ),
         tr(
           td("Heartbeat (mv)"),
@@ -124,9 +118,9 @@ object Main extends TyrianZIOApp[Msg, Model]:
         ),
         section("BME")
       )
-      ++ sensors.bme.fold(Nil)(viewBME)
-      ++ List(section("TMG"))
-      ++ sensors.tmg.fold(Nil)(viewTMG)
+        ++ sensors.bme.fold(Nil)(viewBME)
+        ++ List(section("TMG"))
+        ++ sensors.tmg.fold(Nil)(viewTMG)
     )
 
   def status(message: String): Html[Msg] =
@@ -136,6 +130,7 @@ object Main extends TyrianZIOApp[Msg, Model]:
     )
 
   def view(model: Model): Html[Msg] =
+    println("view")
     div(cls := "w-full h-full flex flex-col justify-start items-center gap-10 py-10")(
       h1(cls := "text-6xl font-bold text-cyan-400")("Sensors monitor"),
       div(cls := "w-5xl h-full flex flex-col justify-start items-center gap-10")(
@@ -155,23 +150,20 @@ object Main extends TyrianZIOApp[Msg, Model]:
                     path(d := "M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71")
                   )
                 ),
-                label(cls := "opacity-50")("http://"),
+                label(cls := "opacity-50")("ws://"),
                 input(
-                  `type` := "url",
+                  `type` := "text",
                   required,
                   placeholder := "127.0.0.1",
-                  pattern := """^(https?://)?([a-zA-Z0-9]([a-zA-Z0-9\-].*[a-zA-Z0-9])?\.)+[a-zA-Z].*$""",
-                  title := "Must be valid URL",
-                  onInput(Msg.SetPollingAddress.apply)
+                  onInput(Msg.SetAddress.apply)
                 )
-              ),
-              p(cls := "validator-hint")("Must be valid URL")
+              )
             ),
             button(
               cls := "btn btn-info join-item",
-              onClick(Msg.SetPolling(!model.polling))
+              onClick(Msg.Connect)
             )(
-              if model.polling then
+              if model.socket.isDefined then
                 if model.sensors.isDefined then span("Stop polling")
                 else span(cls := "swap-off loading loading-spinner")("")
               else span("Start polling")
