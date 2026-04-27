@@ -22,17 +22,21 @@ object Main extends TyrianZIOApp[Msg, Model]:
     (Model.default, Cmd.None)
 
   def update(model: Model): Msg => (Model, Cmd[Task, Msg]) =
-    case Msg.SetAddress(value) => (model.copy(address = value), Cmd.None)
+    case Msg.SetAddress(value)  => (model.copy(address = value), Cmd.None)
     case Msg.Connecting(socket) => (model.copy(socket = Some(socket)), Cmd.None)
-    case Msg.Connected => (model.copy(connected = true), Cmd.None)
-    case Msg.Connect           => (model, WebSocket.connect(model.socketEndpoint)(Msg.decodeConnect))
+    case Msg.Connected          => (model.copy(connected = true), Cmd.None)
+    case Msg.Connect            => (model, WebSocket.connect(model.socketEndpoint)(Msg.decodeConnect))
     case Msg.NetworkError(reason) =>
       println(s"Network error: $reason")
       (model.copy(connected = false, socket = None), Cmd.None)
-    case Msg.Receive(controller)        => (model, Cmd.None)
     case Msg.Disconnected(1000, _)      => (model.copy(connected = false, socket = None), Cmd.None)
     case Msg.Disconnected(code, reason) => (model.copy(connected = false, socket = None), Cmd.None)
-    case Msg.NoOp                       => (model, Cmd.None)
+    case Msg.StartGame                  => (model.copy(game = Some(Game.init)), Cmd.None)
+    case Msg.Game(message) => model.game.fold((model, Cmd.None))(game =>
+        val (updated, cmd) = Game.update(game)(message)
+        (model.copy(game = Some(updated)), cmd.map(Msg.Game.apply))
+      )
+    case Msg.NoOp => (model, Cmd.None)
 
   def subscriptions(model: Model): Sub[Task, Msg] =
     model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent))
@@ -72,14 +76,12 @@ object Main extends TyrianZIOApp[Msg, Model]:
         else span("Connect to controller")
       )
     ),
-    if model.connected then button(cls := "btn btn-wide btn-success")("Start game")
+    if model.connected then
+      button(
+        cls := "btn btn-wide btn-success",
+        onClick(Msg.StartGame)
+      )("Start game")
     else button(cls := "btn btn-wide btn-disabled")("Start game")
-  )
-
-  def viewGame(game: Game): Html[Msg] = div(cls := "h-full w-full flex flex-col justify-start items-center")(
-    div(cls := "f-wull flex flex-row justify-start")(
-      img(src := "/public/health.png")
-    )
   )
 
   def view(model: Model): Html[Msg] = div(cls := "w-screen h-screen flex flex-col justify-start items-center p-15")(
@@ -88,6 +90,6 @@ object Main extends TyrianZIOApp[Msg, Model]:
       span(cls := "text-2xl")("Wish")
     ),
     model.game match
-      case Some(game) if model.socket.isDefined => viewGame(game)
-      case _                                    => viewMainMenu(model)
+      case Some(game) if model.connected => Game.view(game)
+      case _                             => viewMainMenu(model)
   )

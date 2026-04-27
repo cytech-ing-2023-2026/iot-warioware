@@ -2,9 +2,9 @@ package fr.cyu.iot.game
 
 import fr.cyu.iot.Msg
 import tyrian.Cmd
-import zio.Task
 import tyrian.Html
 import tyrian.Html.*
+import zio.Task
 
 object ShakeMinigame extends Minigame:
   enum Position:
@@ -19,4 +19,4 @@ object ShakeMinigame extends Minigame:
   override def update(model: Model): Msg => (Model, Cmd[Task, Msg]) = ???
 
   override def view(model: Model): Html[Msg] =
-    div(cls := "text-xl", style("translate-y", model.y.toString))("Bouteille") 
+    div(cls := "text-xl", style("translate-y", model.y.toString))("Bouteille")

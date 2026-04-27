@@ -2,8 +2,8 @@ package fr.cyu.iot.game
 
 import fr.cyu.iot.Msg
 import tyrian.Cmd
-import zio.Task
 import tyrian.Html
+import zio.Task
 
 trait Minigame:
 

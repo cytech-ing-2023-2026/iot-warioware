@@ -13,8 +13,8 @@ enum Msg:
   case Connected
   case Connect
   case NetworkError(reason: String)
-  case Receive(controller: Msg.Controller)
   case Disconnected(code: Int, reason: String)
+  case StartGame
   case Game(message: GameMsg)
   case NoOp
 
@@ -23,8 +23,6 @@ object Msg:
   case class Color(lux: Double) derives JsonDecoder
   case class TMG(color: Color) derives JsonDecoder
   case class RawData(joystick: Joystick, tmg: TMG) derives JsonDecoder
-
-  case class Controller(x: Double, y: Double, pressed: Boolean, lux: Double)
 
   def decodingFailed(reason: String): Msg =
     Msg.NetworkError(s"Decoding failure: $reason")
@@ -38,7 +36,7 @@ object Msg:
     case WebSocketEvent.Error(reason)       => Msg.NetworkError(reason)
     case WebSocketEvent.Heartbeat           => Msg.NoOp
     case WebSocketEvent.Open                => Msg.Connected
-    case WebSocketEvent.Receive(message)    => message.fromJson[RawData].fold(
-      reason => Msg.NetworkError(s"Wrong controller data received: $reason"),
-      data => Msg.Receive(Controller(data.joystick.x, data.joystick.y, data.joystick.pressed, data.tmg.color.lux))
-    )
+    case WebSocketEvent.Receive(message) => message.fromJson[RawData].fold(
+        reason => Msg.NetworkError(s"Wrong controller data received: $reason"),
+        data => Msg.Game(GameMsg.ControllerUpdated(data.joystick.x, data.joystick.y, data.joystick.pressed, data.tmg.color.lux))
+      )
