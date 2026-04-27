@@ -1,5 +1,6 @@
 package fr.cyu.iot
 
+import fr.cyu.iot.game.GameMsg
 import tyrian.websocket.WebSocket
 import tyrian.websocket.WebSocketConnect
 import tyrian.websocket.WebSocketEvent
@@ -8,24 +9,36 @@ import zio.json.*
 
 enum Msg:
   case SetAddress(value: String)
-  case Connected(socket: WebSocket[Task])
+  case Connecting(socket: WebSocket[Task])
+  case Connected
   case Connect
   case NetworkError(reason: String)
-  case Receive(data: Sensors)
+  case Receive(controller: Msg.Controller)
   case Disconnected(code: Int, reason: String)
+  case Game(message: GameMsg)
   case NoOp
 
 object Msg:
+  case class Joystick(x: Double, y: Double, pressed: Boolean) derives JsonDecoder
+  case class Color(lux: Double) derives JsonDecoder
+  case class TMG(color: Color) derives JsonDecoder
+  case class RawData(joystick: Joystick, tmg: TMG) derives JsonDecoder
+
+  case class Controller(x: Double, y: Double, pressed: Boolean, lux: Double)
+
   def decodingFailed(reason: String): Msg =
     Msg.NetworkError(s"Decoding failure: $reason")
 
   def decodeConnect(connect: WebSocketConnect[Task]): Msg = connect match
     case WebSocketConnect.Error(msg)        => Msg.NetworkError(msg)
-    case WebSocketConnect.Socket(webSocket) => Msg.Connected(webSocket)
+    case WebSocketConnect.Socket(webSocket) => Msg.Connecting(webSocket)
 
   def decodeEvent(event: WebSocketEvent): Msg = event match
     case WebSocketEvent.Close(code, reason) => Msg.Disconnected(code, reason)
     case WebSocketEvent.Error(reason)       => Msg.NetworkError(reason)
     case WebSocketEvent.Heartbeat           => Msg.NoOp
-    case WebSocketEvent.Open                => Msg.NoOp
-    case WebSocketEvent.Receive(message)    => message.fromJson[Sensors].fold(decodingFailed, Msg.Receive.apply)
+    case WebSocketEvent.Open                => Msg.Connected
+    case WebSocketEvent.Receive(message)    => message.fromJson[RawData].fold(
+      reason => Msg.NetworkError(s"Wrong controller data received: $reason"),
+      data => Msg.Receive(Controller(data.joystick.x, data.joystick.y, data.joystick.pressed, data.tmg.color.lux))
+    )
