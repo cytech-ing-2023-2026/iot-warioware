@@ -13,11 +13,13 @@ object LightMinigame extends Minigame:
 
   def isInRange(targetLux: Double, currentLux: Double): Boolean = math.abs(targetLux - currentLux) < 0.125
 
-  override def name: String = "Adjust the light..."
+  override val name: String = "Adjust the light..."
 
-  override def duration: Long = 7000
+  override val control: Control = Control.Light
 
-  override def init: Model = Model(Random.between(0.125, 0.875), 0, 1000, 1000)
+  override val duration: Long = 8000
+
+  override def init: Model = Model(Random.between(0.125, 0.875), 0, 875, 875)
 
   override def update(model: Model, controller: GameMsg.ControllerUpdated): (Model, Cmd[Task, GameMsg]) =
     val remaining =
