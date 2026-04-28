@@ -17,10 +17,13 @@ case class Game(
   currentMinigameState: Any,
   minigameDuration: Long,
   remainingTime: Long,
-  wonLast: Boolean
+  lastOutcome: Game.Outcome
 )
 
 object Game:
+
+  enum Outcome:
+    case Start, Loss, Close, Win
 
   val waitTime = 2000
 
@@ -35,7 +38,7 @@ object Game:
 
   def initRandomMinigame(): Game =
     val minigame = randomMinigame()
-    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime, false)
+    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime, Outcome.Start)
 
   def nextRound(game: Game): Game =
     val minigame = randomMinigame()
@@ -57,10 +60,14 @@ object Game:
         (game.copy(currentMinigameState = newState), cmd.map(Msg.Game.apply))
       else
         (game, Cmd.None)
-    case GameMsg.MinigameFinished(true) => (nextRound(game.copy(wonLast = true)), Cmd.None)
+    case GameMsg.MinigameFinished(true) =>
+      val outcome =
+        if game.remainingTime.toDouble / game.minigameDuration < 0.25 then Outcome.Close
+        else Outcome.Win
+      (nextRound(game.copy(lastOutcome = outcome)), Cmd.None)
     case GameMsg.MinigameFinished(false) =>
       if game.health == 1 then (game, Cmd.emit(Msg.EndGame(game.round)))
-      else (nextRound(game.copy(health = game.health - 1, wonLast = false)), Cmd.None)
+      else (nextRound(game.copy(health = game.health - 1, lastOutcome = Outcome.Loss)), Cmd.None)
     case GameMsg.TimerDecrement =>
       (
         if game.remainingTime > 0 then game.copy(remainingTime = game.remainingTime - timerGranularity)
@@ -86,15 +93,16 @@ object Game:
 
     val gameView = game.currentMinigame.view(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model])
 
-    val lastOutcomeColor =
-      if game.round == 1 then "text-neutral"
-      else if game.wonLast then "text-success"
-      else "text-error"
+    val lastOutcomeColor = game.lastOutcome match
+      case Outcome.Start => "text-neutral"
+      case Outcome.Loss => "text-error"
+      case Outcome.Close | Outcome.Win => "text-success"
 
-    val lastOutcomeText =
-      if game.round == 1 then "Next round..."
-      else if game.wonLast then "Good job!"
-      else "Oh no..."
+    val lastOutcomeText = game.lastOutcome match
+      case Outcome.Start => "Good luck!"
+      case Outcome.Loss => "Oh no..."
+      case Outcome.Close => "Close."
+      case Outcome.Win => "Nice!"
 
     div(cls := "w-full flex flex-col justify-start items-center gap-5")(
       progress(cls := s"progress $progressStatus", value := progressRatio.toString, max := "100")(),
