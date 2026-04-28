@@ -11,11 +11,11 @@ object LightMinigame extends Minigame:
 
   case class Model(targetLux: Double, currentLux: Double, remaining: Long, timer: Long)
 
-  def isInRange(targetLux: Double, currentLux: Double): Boolean = math.abs(targetLux - currentLux) < 0.1
+  def isInRange(targetLux: Double, currentLux: Double): Boolean = math.abs(targetLux - currentLux) < 0.125
 
   override def name: String = "Adjust the light..."
 
-  override def duration: Long = 10_000
+  override def duration: Long = 7000
 
   override def init: Model = Model(Random.between(0.125, 0.875), 0, 1000, 1000)
 

@@ -16,7 +16,8 @@ case class Game(
   currentMinigame: Minigame,
   currentMinigameState: Any,
   minigameDuration: Long,
-  remainingTime: Long
+  remainingTime: Long,
+  wonLast: Boolean
 )
 
 object Game:
@@ -34,7 +35,7 @@ object Game:
 
   def initRandomMinigame(): Game =
     val minigame = randomMinigame()
-    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime)
+    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime, false)
 
   def nextRound(game: Game): Game =
     val minigame = randomMinigame()
@@ -56,10 +57,10 @@ object Game:
         (game.copy(currentMinigameState = newState), cmd.map(Msg.Game.apply))
       else
         (game, Cmd.None)
-    case GameMsg.MinigameFinished(true) => (nextRound(game), Cmd.None)
+    case GameMsg.MinigameFinished(true) => (nextRound(game.copy(wonLast = true)), Cmd.None)
     case GameMsg.MinigameFinished(false) =>
       if game.health == 1 then (game, Cmd.emit(Msg.EndGame(game.round)))
-      else (nextRound(game.copy(health = game.health - 1)), Cmd.None)
+      else (nextRound(game.copy(health = game.health - 1, wonLast = false)), Cmd.None)
     case GameMsg.TimerDecrement =>
       (
         if game.remainingTime > 0 then game.copy(remainingTime = game.remainingTime - timerGranularity)
@@ -85,7 +86,15 @@ object Game:
 
     val gameView = game.currentMinigame.view(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model])
 
-    println(s"Wait: $waitProgress")
+    val lastOutcomeColor =
+      if game.round == 1 then "text-neutral"
+      else if game.wonLast then "text-success"
+      else "text-error"
+
+    val lastOutcomeText =
+      if game.round == 1 then "Next round..."
+      else if game.wonLast then "Good job!"
+      else "Oh no..."
 
     div(cls := "w-full flex flex-col justify-start items-center gap-5")(
       progress(cls := s"progress $progressStatus", value := progressRatio.toString, max := "100")(),
@@ -105,12 +114,15 @@ object Game:
         if game.remainingTime > game.minigameDuration then
           div(cls := "h-full stack")(
             div(
-              cls := "h-full w-full bg-white/75 flex flex-col justify-center items-center"
+              cls := "h-full w-full bg-white/90 flex flex-col justify-center items-center gap-5"
             )(
-              p(cls := "text-2xl")("Next round..."),
+              p(cls := s"text-2xl font-weight ${lastOutcomeColor}")(lastOutcomeText),
               div(
-                cls := "radial-progress text-primary text-2xl font-weight",
-                style("--value", waitProgress.toString),
+                cls := s"radial-progress ${lastOutcomeColor} text-2xl font-weight",
+                styles(
+                  "--value" -> waitProgress.toString,
+                  "--size" -> "8rem"
+                ),
                 attr("aria-valuenow") := waitProgress.toString,
                 role := "progressbar"
               )(s"${waitSeconds}s")
