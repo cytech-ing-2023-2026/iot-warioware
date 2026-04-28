@@ -15,6 +15,7 @@ enum Msg:
   case NetworkError(reason: String)
   case Disconnected(code: Int, reason: String)
   case StartGame
+  case EndGame(score: Int)
   case Game(message: GameMsg)
   case NoOp
 
@@ -38,5 +39,5 @@ object Msg:
     case WebSocketEvent.Open                => Msg.Connected
     case WebSocketEvent.Receive(message) => message.fromJson[RawData].fold(
         reason => Msg.NetworkError(s"Wrong controller data received: $reason"),
-        data => Msg.Game(GameMsg.ControllerUpdated(data.joystick.x, data.joystick.y, data.joystick.pressed, data.tmg.color.lux))
+        data => Msg.Game(GameMsg.ControllerUpdated(Constant.JoystickMax - data.joystick.y, Constant.JoystickMax - data.joystick.x, data.joystick.pressed, data.tmg.color.lux))
       )

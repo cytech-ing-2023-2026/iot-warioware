@@ -31,17 +31,29 @@ object Main extends TyrianZIOApp[Msg, Model]:
       (model.copy(connected = false, socket = None), Cmd.None)
     case Msg.Disconnected(1000, _)      => (model.copy(connected = false, socket = None), Cmd.None)
     case Msg.Disconnected(code, reason) => (model.copy(connected = false, socket = None), Cmd.None)
-    case Msg.StartGame                  => (model.copy(game = Some(Game.init)), Cmd.None)
+    case Msg.StartGame                  => (model.copy(game = Some(Game.initRandomMinigame())), Cmd.None)
+    case Msg.EndGame(score)             => (
+      model.copy(
+        game = None,
+        lastScore = Some(score),
+        highScore = model.highScore.fold(Some(score))(s => Some(math.max(s, score)))
+      ),
+      Cmd.None
+    )
     case Msg.Game(message) => model.game.fold((model, Cmd.None))(game =>
         val (updated, cmd) = Game.update(game)(message)
-        (model.copy(game = Some(updated)), cmd.map(Msg.Game.apply))
+        (model.copy(game = Some(updated)), cmd)
       )
     case Msg.NoOp => (model, Cmd.None)
 
   def subscriptions(model: Model): Sub[Task, Msg] =
-    model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent))
+    model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent)) |+| model.game.fold(Sub.None)(Game.subscriptions)
 
   def viewMainMenu(model: Model): Html[Msg] = div(cls := "h-full flex flex-col justify-center items-center gap-10")(
+    div(cls := "flex flex-col gap-2")(
+      model.lastScore.fold(div())(score => p(cls := "text-lg font-bold")(s"Last score: $score")),
+      model.highScore.fold(div())(score => p(cls := "text-lg font-bold")(s"High score: $score")),
+    ),
     div(cls := "join")(
       div(cls := "flex flex-col")(
         label(cls := "input validator")(
@@ -62,6 +74,7 @@ object Main extends TyrianZIOApp[Msg, Model]:
             `type` := "text",
             required,
             placeholder := "127.0.0.1",
+            value := model.address,
             onInput(Msg.SetAddress.apply)
           )
         )

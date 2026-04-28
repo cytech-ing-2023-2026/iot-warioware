@@ -11,8 +11,10 @@ trait Minigame:
 
   def name: String
 
+  def duration: Long
+
   def init: Model
 
-  def update(model: Model): Msg => (Model, Cmd[Task, Msg])
+  def update(model: Model, controller: GameMsg.ControllerUpdated): (Model, Cmd[Task, GameMsg])
 
   def view(model: Model): Html[Msg]
