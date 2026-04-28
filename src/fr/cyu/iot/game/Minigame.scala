@@ -11,6 +11,8 @@ trait Minigame:
 
   def name: String
 
+  def control: Control
+
   def duration: Long
 
   def init: Model

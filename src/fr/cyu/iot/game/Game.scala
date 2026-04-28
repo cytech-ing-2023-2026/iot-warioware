@@ -42,7 +42,7 @@ object Game:
 
   def nextRound(game: Game): Game =
     val minigame = randomMinigame()
-    val durationCoef = 1 + game.round / 4 * 0.1
+    val durationCoef = 1 + game.round / 4 * 0.2
     val minigameDuration = (minigame.duration / durationCoef).toLong
     game.copy(
       round = game.round + 1,
@@ -98,11 +98,18 @@ object Game:
       case Outcome.Loss => "text-error"
       case Outcome.Close | Outcome.Win => "text-success"
 
-    val lastOutcomeText = game.lastOutcome match
-      case Outcome.Start => "Good luck!"
-      case Outcome.Loss => "Oh no..."
-      case Outcome.Close => "Close."
-      case Outcome.Win => "Nice!"
+    val lastOutcomeText =
+      if game.round % 4 == 0 then "Faster !"
+      else
+        game.lastOutcome match
+          case Outcome.Start => "Good luck!"
+          case Outcome.Loss => "Oh no..."
+          case Outcome.Close => "Close."
+          case Outcome.Win => "Nice!"
+
+    val boldIfFaster =
+      if game.round % 4 == 0 then "font-bold"
+      else ""
 
     div(cls := "w-full flex flex-col justify-start items-center gap-5")(
       progress(cls := s"progress $progressStatus", value := progressRatio.toString, max := "100")(),
@@ -117,16 +124,19 @@ object Game:
           )
       ),
       h2(cls := "text-xl")(s"Round ${game.round}"),
-      h2(cls := "text-2xl")(game.currentMinigame.name),
+      div(cls := "flex flex-row justify-center items-center gap-2")(
+        h2(cls := "text-2xl")(game.currentMinigame.name),
+        img(cls := "w-6 h-6 object-contain", src := game.currentMinigame.control.toImage)
+      ),
       div(cls := "h-100 flex flex-col justify-start")(
         if game.remainingTime > game.minigameDuration then
           div(cls := "h-full stack")(
             div(
               cls := "h-full w-full bg-white/90 flex flex-col justify-center items-center gap-5"
             )(
-              p(cls := s"text-2xl font-weight ${lastOutcomeColor}")(lastOutcomeText),
+              p(cls := s"text-2xl $boldIfFaster $lastOutcomeColor")(lastOutcomeText),
               div(
-                cls := s"radial-progress ${lastOutcomeColor} text-2xl font-weight",
+                cls := s"radial-progress $lastOutcomeColor text-2xl",
                 styles(
                   "--value" -> waitProgress.toString,
                   "--size" -> "8rem"

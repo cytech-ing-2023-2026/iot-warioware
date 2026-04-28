@@ -21,6 +21,8 @@ object ShakeMinigame extends Minigame:
 
   override val name: String = "Shake the bottle!"
 
+  override val control: Control = Control.UpDown
+
   override val duration: Long = 4000
 
   override val init: Model = Model(10, Position.Start, 0.5)
