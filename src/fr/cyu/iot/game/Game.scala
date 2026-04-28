@@ -21,17 +21,20 @@ case class Game(
 
 object Game:
 
+  val waitTime = 2000
+
   val timerGranularity: Long = 16
 
   private val minigames: List[Minigame] = List(
-    ShakeMinigame
+    ShakeMinigame,
+    LightMinigame
   )
 
   private def randomMinigame(): Minigame = minigames(Random.nextInt(minigames.size))
 
   def initRandomMinigame(): Game =
     val minigame = randomMinigame()
-    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + 1500)
+    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime)
 
   def nextRound(game: Game): Game =
     val minigame = randomMinigame()
@@ -42,7 +45,7 @@ object Game:
       currentMinigame = minigame,
       currentMinigameState = minigame.init,
       minigameDuration = minigameDuration,
-      remainingTime = minigameDuration + 1500
+      remainingTime = minigameDuration + waitTime
     )
 
   def update(game: Game): GameMsg => (Game, Cmd[Task, Msg]) =
@@ -76,6 +79,14 @@ object Game:
       else if game.remainingTime > game.minigameDuration / 4 then "progress-warning"
       else "progress-error"
 
+    val currentWait = game.remainingTime - game.minigameDuration
+    val waitProgress = currentWait * 100 / waitTime
+    val waitSeconds = currentWait / 1000
+
+    val gameView = game.currentMinigame.view(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model])
+
+    println(s"Wait: $waitProgress")
+
     div(cls := "w-full flex flex-col justify-start items-center gap-5")(
       progress(cls := s"progress $progressStatus", value := progressRatio.toString, max := "100")(),
       div(cls := "flex flex-row justify-center gap-4")(
@@ -91,6 +102,22 @@ object Game:
       h2(cls := "text-xl")(s"Round ${game.round}"),
       h2(cls := "text-2xl")(game.currentMinigame.name),
       div(cls := "h-100 flex flex-col justify-start")(
-        game.currentMinigame.view(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model])
+        if game.remainingTime > game.minigameDuration then
+          div(cls := "h-full stack")(
+            div(
+              cls := "h-full w-full bg-white/75 flex flex-col justify-center items-center"
+            )(
+              p(cls := "text-2xl")("Next round..."),
+              div(
+                cls := "radial-progress text-primary text-2xl font-weight",
+                style("--value", waitProgress.toString),
+                attr("aria-valuenow") := waitProgress.toString,
+                role := "progressbar"
+              )(s"${waitSeconds}s")
+            ),
+            gameView
+          )
+        else
+          gameView
       )
     )

@@ -39,5 +39,10 @@ object Msg:
     case WebSocketEvent.Open                => Msg.Connected
     case WebSocketEvent.Receive(message) => message.fromJson[RawData].fold(
         reason => Msg.NetworkError(s"Wrong controller data received: $reason"),
-        data => Msg.Game(GameMsg.ControllerUpdated(Constant.JoystickMax - data.joystick.y, Constant.JoystickMax - data.joystick.x, data.joystick.pressed, data.tmg.color.lux))
+        data =>
+          val scaledX = (Constant.JoystickMax - data.joystick.y - Constant.JoystickMin) / Constant.JoystickMax
+          val scaledY = (Constant.JoystickMax - data.joystick.x - Constant.JoystickMin) / Constant.JoystickMax
+          val scaledLux = (data.tmg.color.lux - Constant.LuxMin) / Constant.LuxMax
+
+          Msg.Game(GameMsg.ControllerUpdated(scaledX, scaledY, data.joystick.pressed, scaledLux))
       )

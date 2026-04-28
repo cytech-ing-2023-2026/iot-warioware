@@ -21,20 +21,19 @@ object ShakeMinigame extends Minigame:
 
   override val name: String = "Shake the bottle!"
 
-  override val duration: Long = 5000
+  override val duration: Long = 4500
 
   override val init: Model = Model(10, Position.Start, 0.5)
 
   override def update(model: Model, controller: GameMsg.ControllerUpdated): (Model, Cmd[Task, GameMsg]) =
-    val scaledY = (controller.y - Constant.JoystickMin) / Constant.JoystickMax
-    val position = Position.fromY(scaledY)
+    val position = Position.fromY(controller.y)
     val remaining = model.remaining - position.fold(0)(pos => if pos == model.position then 0 else 1)
 
     (
       model.copy(
         remaining = remaining,
         position = position.getOrElse(model.position),
-        y = scaledY
+        y = controller.y
       ),
       if remaining == 0 then Cmd.emit(GameMsg.MinigameFinished(true))
       else Cmd.None
