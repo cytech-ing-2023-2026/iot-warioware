@@ -30,9 +30,10 @@ object Game:
   val timerGranularity: Long = 16
 
   private val minigames: List[Minigame] = List(
+    ShakeMinigame,
     LightMinigame,
     SequenceMinigame,
-    ShakeMinigame
+    BalloonMinigame
   )
 
   private def randomMinigame(): Minigame = minigames(Random.nextInt(minigames.size))
@@ -73,7 +74,8 @@ object Game:
       (
         if game.remainingTime > 0 then game.copy(remainingTime = game.remainingTime - timerGranularity)
         else game,
-        if game.remainingTime > 0 && game.remainingTime <= timerGranularity then Cmd.emit(Msg.Game(GameMsg.MinigameFinished(false)))
+        if game.remainingTime > 0 && game.remainingTime <= timerGranularity then
+          Cmd.emit(Msg.Game(GameMsg.MinigameFinished(game.currentMinigame.endStatus(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model]))))
         else Cmd.None
       )
 
