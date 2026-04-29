@@ -4,5 +4,5 @@ object Constant:
   val JoystickMax: Double = 4095
   val JoystickMin: Double = 0
   
-  val LuxMax: Double = 700
+  val LuxMax: Double = 600
   val LuxMin: Double = 0
