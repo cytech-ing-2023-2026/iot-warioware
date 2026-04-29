@@ -31,6 +31,8 @@ object Game:
 
   private val minigames: List[Minigame] = List(
     BalloonMinigame,
+    CatPawMinigame,
+    DogPawMinigame,
     LightMinigame,
     SequenceMinigame,
     ShakeMinigame
