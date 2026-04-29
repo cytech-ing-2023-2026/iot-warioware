@@ -30,12 +30,12 @@ object Game:
   val timerGranularity: Long = 16
 
   private val minigames: List[Minigame] = List(
-    //BalloonMinigame,
+    BalloonMinigame,
     CatPawMinigame,
-    //DogPawMinigame,
-    //LightMinigame,
-    //SequenceMinigame,
-    //ShakeMinigame
+    DogPawMinigame,
+    LightMinigame,
+    SequenceMinigame,
+    ShakeMinigame
   )
 
   private def randomMinigame(): Minigame = minigames(Random.nextInt(minigames.size))

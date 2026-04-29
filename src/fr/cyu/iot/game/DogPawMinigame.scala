@@ -84,7 +84,7 @@ object DogPawMinigame extends Minigame:
 
   override def view(model: Model): Html[Msg] =
     div(
-      cls := "relative w-5xl h-full overflow-hidden rounded-xl border-4 border-info",
+      cls := "relative w-xl h-full overflow-hidden rounded-xl border-4 border-info",
       styles("background-color" -> "#cdecf7") // Light blue for ice feel
     )(
       // The Dog Paw
