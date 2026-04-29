@@ -45,7 +45,7 @@ object Game:
   def nextRound(game: Game): Game =
     val minigame = randomMinigame()
     val durationCoef = math.pow(0.85, game.round / 4)
-    val minigameDuration = (minigame.duration / durationCoef).toLong
+    val minigameDuration = (minigame.duration * durationCoef).toLong
     game.copy(
       round = game.round + 1,
       currentMinigame = minigame,
