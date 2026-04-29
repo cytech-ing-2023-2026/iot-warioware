@@ -64,7 +64,10 @@ object Game:
         (game, Cmd.None)
     case GameMsg.MinigameFinished(true) =>
       val outcome =
-        if game.remainingTime.toDouble / game.minigameDuration < 0.25 then Outcome.Close
+        // Games that always use the full timer (endStatus) should NEVER trigger close call messages.
+        if game.currentMinigame.endStatus(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model]).isDefined then Outcome.Win
+        // For other games, usual logic applies
+        else if game.remainingTime.toDouble / game.minigameDuration < 0.25 then Outcome.Close
         else Outcome.Win
       (nextRound(game.copy(lastOutcome = outcome)), Cmd.None)
     case GameMsg.MinigameFinished(false) =>
