@@ -75,7 +75,8 @@ object Game:
         if game.remainingTime > 0 then game.copy(remainingTime = game.remainingTime - timerGranularity)
         else game,
         if game.remainingTime > 0 && game.remainingTime <= timerGranularity then
-          Cmd.emit(Msg.Game(GameMsg.MinigameFinished(game.currentMinigame.endStatus(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model]))))
+          val win = game.currentMinigame.endStatus(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model]).getOrElse(false)
+          Cmd.emit(Msg.Game(GameMsg.MinigameFinished(win)))
         else Cmd.None
       )
 

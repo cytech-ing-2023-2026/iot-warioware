@@ -19,6 +19,6 @@ trait Minigame:
 
   def update(model: Model, controller: GameMsg.ControllerUpdated): (Model, Cmd[Task, GameMsg])
 
-  def endStatus(model: Model): Boolean = false
+  def endStatus(model: Model): Option[Boolean] = None
 
   def view(model: Model): Html[Msg]

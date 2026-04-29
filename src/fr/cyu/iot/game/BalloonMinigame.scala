@@ -26,7 +26,7 @@ object BalloonMinigame extends Minigame:
     else
       // Increase size if pressed, decrease if not pressed (but not below 0)
       val newSize =
-        if controller.pressed then model.size + 0.005
+        if controller.pressed then model.size + 0.01
         else math.max(0.0, model.size - 0.005)
       
       if newSize > MaxSize then
@@ -34,8 +34,8 @@ object BalloonMinigame extends Minigame:
       else
         (model.copy(size = newSize), Cmd.None)
 
-  override def endStatus(model: Model): Boolean =
-    !model.popped && model.size >= WinSize
+  override def endStatus(model: Model): Option[Boolean] =
+    Some(!model.popped && model.size >= WinSize)
 
   override def view(model: Model): Html[Msg] =
     val scale = if model.popped then 0.0 else 0.5 + model.size * 1.5
@@ -44,7 +44,10 @@ object BalloonMinigame extends Minigame:
         cls := "flex flex-col justify-end items-center h-48 w-48"
       )(
         if model.popped then
-          p(cls := "text-4xl text-error font-bold")("POPPED!")
+          img(
+            cls := "object-contain",
+            src := "/public/explosion.png"
+          )
         else
           img(
             cls := "object-contain",
@@ -52,7 +55,7 @@ object BalloonMinigame extends Minigame:
               "transform" -> s"scale($scale)",
               "transition" -> "transform 0.05s"
             ),
-            src := "/public/heart.png"
+            src := "/public/balloon.png"
           )
       ),
       div(cls := "w-56 flex flex-col items-center gap-1 relative")(
