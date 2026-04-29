@@ -39,11 +39,11 @@ object Game:
 
   def initRandomMinigame(): Game =
     val minigame = randomMinigame()
-    Game(1, 3, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime, Outcome.Start)
+    Game(1, 4, 4, minigame, minigame.init, minigame.duration, minigame.duration + waitTime, Outcome.Start)
 
   def nextRound(game: Game): Game =
     val minigame = randomMinigame()
-    val durationCoef = 1 + game.round / 4 * 0.2
+    val durationCoef = math.pow(0.85, game.round / 4)
     val minigameDuration = (minigame.duration / durationCoef).toLong
     game.copy(
       round = game.round + 1,
