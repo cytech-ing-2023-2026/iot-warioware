@@ -39,6 +39,7 @@ object BalloonMinigame extends Minigame:
 
   override def view(model: Model): Html[Msg] =
     val scale = if model.popped then 0.0 else 0.5 + model.size * 1.5
+    val balloonOpacity = 1.0 - (model.size * 0.4)
     div(cls := "h-full flex flex-col justify-center items-center gap-10 w-full")(
       div(
         cls := "flex flex-col justify-end items-center h-48 w-48"
@@ -53,7 +54,8 @@ object BalloonMinigame extends Minigame:
             cls := "object-contain",
             styles(
               "transform" -> s"scale($scale)",
-              "transition" -> "transform 0.05s"
+              "opacity" -> balloonOpacity.toString,
+              "transition" -> "transform 0.05s, opacity 0.05s"
             ),
             src := "/public/balloon.png"
           )
