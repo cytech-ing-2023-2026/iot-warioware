@@ -27,7 +27,7 @@ object SequenceMinigame extends Minigame:
 
   override val name: String = "Repeat the sequence!"
 
-  override def control: Control = Control.Arrows
+  override def control: Control = Control.Joystick
 
   override def duration: Long = 5000
 
