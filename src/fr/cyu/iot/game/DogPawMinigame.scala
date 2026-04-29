@@ -84,12 +84,12 @@ object DogPawMinigame extends Minigame:
 
   override def view(model: Model): Html[Msg] =
     div(
-      cls := "relative w-80 h-80 overflow-hidden rounded-xl border-4 border-info",
-      styles("background-color" -> "#a0d8ef") // Light blue for ice feel
+      cls := "relative w-5xl h-full overflow-hidden rounded-xl border-4 border-info",
+      styles("background-color" -> "#cdecf7") // Light blue for ice feel
     )(
       // The Dog Paw
       img(
-        cls := "absolute object-contain w-16 h-16 transform -translate-x-1/2 translate-y-1/2",
+        cls := "absolute object-contain w-24 h-24 transform -translate-x-1/2 translate-y-1/2",
         // Note: Y coordinates normally go down in CSS. Since our Y is 0=Bottom, 100=Top, we map Y to bottom property.
         styles(
           "left" -> s"${model.pawX}%",
@@ -112,7 +112,7 @@ object DogPawMinigame extends Minigame:
       )(),
       // The Human Hand
       img(
-        cls := "absolute object-contain w-16 h-16 transform -translate-x-1/2 translate-y-1/2", // Centers the image exactly at given %
+        cls := "absolute object-contain w-24 h-24 transform -translate-x-1/2 translate-y-1/2", // Centers the image exactly at given %
         styles(
           "left" -> s"${model.handX}%",
           "bottom" -> s"${model.handY}%"

@@ -31,10 +31,10 @@ object Game:
 
   private val minigames: List[Minigame] = List(
     BalloonMinigame,
+    DogPawMinigame,
     LightMinigame,
     SequenceMinigame,
-    ShakeMinigame,
-    DogPawMinigame
+    ShakeMinigame
   )
 
   private def randomMinigame(): Minigame = minigames(Random.nextInt(minigames.size))
