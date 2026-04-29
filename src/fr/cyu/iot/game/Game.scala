@@ -33,7 +33,8 @@ object Game:
     BalloonMinigame,
     LightMinigame,
     SequenceMinigame,
-    ShakeMinigame
+    ShakeMinigame,
+    DogPawMinigame
   )
 
   private def randomMinigame(): Minigame = minigames(Random.nextInt(minigames.size))
