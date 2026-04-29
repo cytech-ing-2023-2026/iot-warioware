@@ -30,6 +30,7 @@ object Game:
   val timerGranularity: Long = 16
 
   private val minigames: List[Minigame] = List(
+    BalloonMinigame,
     LightMinigame,
     SequenceMinigame,
     ShakeMinigame
@@ -63,7 +64,10 @@ object Game:
         (game, Cmd.None)
     case GameMsg.MinigameFinished(true) =>
       val outcome =
-        if game.remainingTime.toDouble / game.minigameDuration < 0.25 then Outcome.Close
+        // Games that always use the full timer (endStatus) should NEVER trigger close call messages.
+        if game.currentMinigame.endStatus(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model]).isDefined then Outcome.Win
+        // For other games, usual logic applies
+        else if game.remainingTime.toDouble / game.minigameDuration < 0.25 then Outcome.Close
         else Outcome.Win
       (nextRound(game.copy(lastOutcome = outcome)), Cmd.None)
     case GameMsg.MinigameFinished(false) =>
@@ -73,7 +77,9 @@ object Game:
       (
         if game.remainingTime > 0 then game.copy(remainingTime = game.remainingTime - timerGranularity)
         else game,
-        if game.remainingTime > 0 && game.remainingTime <= timerGranularity then Cmd.emit(Msg.Game(GameMsg.MinigameFinished(false)))
+        if game.remainingTime > 0 && game.remainingTime <= timerGranularity then
+          val win = game.currentMinigame.endStatus(game.currentMinigameState.asInstanceOf[game.currentMinigame.Model]).getOrElse(false)
+          Cmd.emit(Msg.Game(GameMsg.MinigameFinished(win)))
         else Cmd.None
       )
 
