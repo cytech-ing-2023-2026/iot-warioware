@@ -29,6 +29,7 @@ object Main extends TyrianZIOApp[Msg, Model]:
     case Msg.NetworkError(reason) =>
       println(s"Network error: $reason")
       (model.copy(connected = false, socket = None), Cmd.None)
+    case Msg.Disconnect => (model.copy(connected = false, socket = None), model.socket.fold(Cmd.None)(_.disconnect))
     case Msg.Disconnected(1000, _)      => (model.copy(connected = false, socket = None), Cmd.None)
     case Msg.Disconnected(code, reason) => (model.copy(connected = false, socket = None), Cmd.None)
     case Msg.StartGame                  => (model.copy(game = Some(Game.initRandomMinigame())), Cmd.None)
@@ -98,9 +99,18 @@ object Main extends TyrianZIOApp[Msg, Model]:
   )
 
   def view(model: Model): Html[Msg] = div(cls := "w-screen h-screen flex flex-col justify-start items-center p-15")(
-    h1(
-      span(cls := "text-5xl")("WarioWare"),
-      span(cls := "text-2xl")("Wish")
+    div(cls := "navbar w-full")(
+      div(cls := "navbar-start")(),
+      div(cls := "navbar-center")(
+        h1(
+          span(cls := "text-5xl")("WarioWare"),
+          span(cls := "text-2xl")("Wish")
+        )
+      ),
+      if model.connected then div(cls := "navbar-end")(
+        button(cls := "btn btn-info", onClick(Msg.Disconnect))("Disconnect")
+      )
+      else div(cls := "navbar-end")()
     ),
     model.game match
       case Some(game) if model.connected => Game.view(game)
