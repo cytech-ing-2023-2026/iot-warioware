@@ -31,7 +31,8 @@ object Game:
 
   private val minigames: List[Minigame] = List(
     ShakeMinigame,
-    LightMinigame
+    LightMinigame,
+    SequenceMinigame
   )
 
   private def randomMinigame(): Minigame = minigames(Random.nextInt(minigames.size))
