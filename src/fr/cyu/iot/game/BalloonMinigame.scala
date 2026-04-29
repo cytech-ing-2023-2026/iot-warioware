@@ -26,7 +26,7 @@ object BalloonMinigame extends Minigame:
     else
       // Increase size if pressed, decrease if not pressed (but not below 0)
       val newSize =
-        if controller.pressed then model.size + 0.01
+        if controller.pressed then model.size + 0.015
         else math.max(0.0, model.size - 0.005)
       
       if newSize > MaxSize then
