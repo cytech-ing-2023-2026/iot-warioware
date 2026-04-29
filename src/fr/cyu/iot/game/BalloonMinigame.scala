@@ -9,7 +9,7 @@ import zio.Task
 object BalloonMinigame extends Minigame:
 
   val MaxSize: Double = 1.0
-  val WinSize: Double = 0.7
+  val WinSize: Double = 0.75
 
   case class Model(size: Double, popped: Boolean)
 
@@ -40,6 +40,12 @@ object BalloonMinigame extends Minigame:
   override def view(model: Model): Html[Msg] =
     val scale = if model.popped then 0.0 else 0.5 + model.size * 1.5
     val balloonOpacity = 1.0 - (model.size * 0.4)
+    val progressStatus =
+      if model.size > 0.9 then "progress-error"
+      else if model.size >= WinSize then "progress-success"
+      else if model.size > WinSize - 0.25 then "progress-warning"
+      else "progress-error"
+
     div(cls := "h-full flex flex-col justify-center items-center gap-10 w-full")(
       div(
         cls := "flex flex-col justify-end items-center h-48 w-48"
@@ -62,7 +68,7 @@ object BalloonMinigame extends Minigame:
       ),
       div(cls := "w-56 flex flex-col items-center gap-1 relative")(
         progress(
-          cls := "progress progress-error w-full",
+          cls := s"progress $progressStatus w-full",
           value := (model.size * 100).toString,
           max := "100"
         )(),
