@@ -41,14 +41,15 @@ object Main extends TyrianZIOApp[Msg, Model]:
       ),
       Cmd.None
     )
-    case Msg.Game(message) => model.game.fold((model, Cmd.None))(game =>
+    case Msg.Game(message) => model.game.filter(_ => model.connected).fold((model, Cmd.None))(game =>
         val (updated, cmd) = Game.update(game)(message)
         (model.copy(game = Some(updated)), cmd)
       )
     case Msg.NoOp => (model, Cmd.None)
 
   def subscriptions(model: Model): Sub[Task, Msg] =
-    model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent)) |+| model.game.fold(Sub.None)(Game.subscriptions)
+    model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent))
+      |+| model.game.filter(_ => model.connected).fold(Sub.None)(Game.subscriptions)
 
   def viewMainMenu(model: Model): Html[Msg] = div(cls := "h-full flex flex-col justify-center items-center gap-10")(
     div(cls := "flex flex-col gap-2")(
