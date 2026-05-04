@@ -8,6 +8,7 @@ import zio.json.*
 case class Model(
   address: String,
   connected: Boolean,
+  lastMessage: Option[Long],
   socket: Option[WebSocket[Task]],
   game: Option[Game],
   lastScore: Option[Int],
@@ -16,4 +17,4 @@ case class Model(
   def socketEndpoint: String = s"ws://$address"
 
 object Model:
-  val default: Model = Model("192.168.12.81:81", false, None, None, None, None)
+  val default: Model = Model("192.168.12.81:81", false, None, None, None, None, None)

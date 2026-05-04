@@ -15,6 +15,7 @@ enum Msg:
   case NetworkError(reason: String)
   case Disconnect
   case Disconnected(code: Int, reason: String)
+  case CheckTimeout
   case StartGame
   case EndGame(score: Int)
   case Game(message: GameMsg)

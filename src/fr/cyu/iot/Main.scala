@@ -9,9 +9,10 @@ import tyrian.SVG.{pattern as svgPattern, *}
 import tyrian.http.Http
 import tyrian.http.Request
 import tyrian.websocket.WebSocket
-import zio.*
+import zio.{System as ZSystem, *}
 import zio.interop.catz.*
 import zio.json.*
+import fr.cyu.iot.game.GameMsg
 
 @JSExportTopLevel("TyrianApp")
 object Main extends TyrianZIOApp[Msg, Model]:
@@ -24,14 +25,20 @@ object Main extends TyrianZIOApp[Msg, Model]:
   def update(model: Model): Msg => (Model, Cmd[Task, Msg]) =
     case Msg.SetAddress(value)  => (model.copy(address = value), Cmd.None)
     case Msg.Connecting(socket) => (model.copy(socket = Some(socket)), Cmd.None)
-    case Msg.Connected          => (model.copy(connected = true), Cmd.None)
+    case Msg.Connected          => (model.copy(connected = true, lastMessage = Some(System.currentTimeMillis())), Cmd.None)
     case Msg.Connect            => (model, WebSocket.connect(model.socketEndpoint)(Msg.decodeConnect))
     case Msg.NetworkError(reason) =>
       println(s"Network error: $reason")
       (model.copy(connected = false, socket = None), Cmd.None)
-    case Msg.Disconnect => (model.copy(connected = false, socket = None), model.socket.fold(Cmd.None)(_.disconnect))
-    case Msg.Disconnected(1000, _)      => (model.copy(connected = false, socket = None), Cmd.None)
-    case Msg.Disconnected(code, reason) => (model.copy(connected = false, socket = None), Cmd.None)
+    case Msg.Disconnect => (model.copy(connected = false, socket = None, lastMessage = None), model.socket.fold(Cmd.None)(_.disconnect))
+    case Msg.Disconnected(code, reason) =>
+      println(s"Disconnected: $code, $reason")
+      (model.copy(connected = false, socket = None, lastMessage = None), Cmd.None)
+    case Msg.CheckTimeout => (
+      model,
+      if model.lastMessage.exists(System.currentTimeMillis() > _ + 5_000) then Cmd.emit(Msg.Disconnected(1000, "Timeout"))
+      else Cmd.None
+    )
     case Msg.StartGame                  => (model.copy(game = Some(Game.initRandomMinigame())), Cmd.None)
     case Msg.EndGame(score)             => (
       model.copy(
@@ -42,13 +49,18 @@ object Main extends TyrianZIOApp[Msg, Model]:
       Cmd.None
     )
     case Msg.Game(message) => model.game.filter(_ => model.connected).fold((model, Cmd.None))(game =>
+        val updatedTimeout =
+          if message.isInstanceOf[GameMsg.ControllerUpdated] then model.copy(lastMessage = Some(System.currentTimeMillis()))
+          else model
+
         val (updated, cmd) = Game.update(game)(message)
-        (model.copy(game = Some(updated)), cmd)
+        (updatedTimeout.copy(game = Some(updated)), cmd)
       )
     case Msg.NoOp => (model, Cmd.None)
 
   def subscriptions(model: Model): Sub[Task, Msg] =
-    model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent))
+    Sub.every(1.seconds).map(_ => Msg.CheckTimeout)
+      |+| model.socket.fold(Sub.None)(_.subscribe(Msg.decodeEvent))
       |+| model.game.filter(_ => model.connected).fold(Sub.None)(Game.subscriptions)
 
   def viewMainMenu(model: Model): Html[Msg] = div(cls := "h-full flex flex-col justify-center items-center gap-10")(
